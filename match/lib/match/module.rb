@@ -27,9 +27,9 @@ module Match
     return :mac_installer_distribution if type == "mac_installer_distribution"
     return :developer_id_installer if type == "developer_id_installer"
     return :developer_id_application if type == "developer_id"
-    return :enterprise if type == "enterprise"
     return :development if type == "development"
-    return :distribution if ["adhoc", "appstore", "distribution"].include?(type)
+    return :distribution if ["adhoc", "appstore", "distribution"].include?(type) || 
+      (type == "enterprise" && Spaceship::ConnectAPI.client.in_house?)
     raise "Unknown cert type: '#{type}'"
   end
 
