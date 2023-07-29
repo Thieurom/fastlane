@@ -12,7 +12,6 @@ import Foundation
 
 struct ArgumentProcessor {
     let args: [RunnerArgument]
-    let currentLane: String
     let commandTimeout: Int
     let port: UInt32
 
@@ -23,15 +22,11 @@ struct ArgumentProcessor {
         }
         self.args = fastlaneArgs
 
-        let fastlaneArgsMinusLanes = fastlaneArgs.filter { arg in
-            arg.name.lowercased() != "lane"
-        }
-
-        let potentialLogMode = fastlaneArgsMinusLanes.filter { arg in
+        let potentialLogMode = fastlaneArgs.filter { arg in
             arg.name.lowercased() == "logmode"
         }
 
-        port = UInt32(fastlaneArgsMinusLanes.first(where: { $0.name == "swiftServerPort" })?.value ?? "") ?? 2000
+        port = UInt32(fastlaneArgs.first(where: { $0.name == "swiftServerPort" })?.value ?? "") ?? 2000
 
         // Configure logMode since we might need to use it before we finish parsing
         if let logModeArg = potentialLogMode.first {
@@ -39,22 +34,8 @@ struct ArgumentProcessor {
             Logger.logMode = Logger.LogMode(logMode: logModeString)
         }
 
-        let lanes = self.args.filter { arg in
-            arg.name.lowercased() == "lane"
-        }
-        verbose(message: lanes.description)
-
-        guard lanes.count == 1 else {
-            let message = "You must have exactly one lane specified as an arg, here's what I got: \(lanes)"
-            log(message: message)
-            fatalError(message)
-        }
-
-        let lane = lanes.first!
-        currentLane = lane.value
-
         // User might have configured a timeout for the socket connection
-        let potentialTimeout = fastlaneArgsMinusLanes.filter { arg in
+        let potentialTimeout = fastlaneArgs.filter { arg in
             arg.name.lowercased() == "timeoutseconds"
         }
 
@@ -69,18 +50,6 @@ struct ArgumentProcessor {
         } else {
             commandTimeout = SocketClient.defaultCommandTimeoutSeconds
         }
-    }
-
-    func laneParameters() -> [String: String] {
-        let laneParametersArgs = args.filter { arg in
-            let lowercasedName = arg.name.lowercased()
-            return lowercasedName != "timeoutseconds" && lowercasedName != "lane" && lowercasedName != "logmode"
-        }
-        var laneParameters = [String: String]()
-        for arg in laneParametersArgs {
-            laneParameters[arg.name] = arg.value
-        }
-        return laneParameters
     }
 }
 
