@@ -15,6 +15,8 @@ import Foundation
 
 let argumentProcessor = ArgumentProcessor(args: CommandLine.arguments)
 let timeout = argumentProcessor.commandTimeout
+var currentLane: String?
+var laneParameters = [String: String]()
 
 class MainProcess {
     var doneRunningLane = false
@@ -26,11 +28,15 @@ class MainProcess {
     #endif
 
     @objc func connectToFastlaneAndRunLane(_ fastfile: LaneFile?) {
+        guard currentLane != nil else { return }
+
         runner.startSocketThread(port: argumentProcessor.port)
 
-        let completedRun = Fastfile.runLane(from: fastfile, named: argumentProcessor.currentLane, with: argumentProcessor.laneParameters())
+        let completedRun = Fastfile.runLane(from: fastfile, named: currentLane!, with: laneParameters)
         if completedRun {
             runner.disconnectFromFastlaneProcess()
+            currentLane = nil
+            laneParameters = [:]
         }
 
         doneRunningLane = true
@@ -69,7 +75,11 @@ public class Main {
 
     public init() {}
 
-    public func run(with fastFile: LaneFile?) {
+    public func run(with fastFile: LaneFile?, lane: String, parameters: [String: String]) {
+        currentLane = lane
+        laneParameters = parameters
+        verbose(message: [currentLane].description)
+
         process.startFastlaneThread(with: fastFile)
 
         while !process.doneRunningLane, RunLoop.current.run(mode: RunLoopMode.defaultRunLoopMode, before: Date(timeIntervalSinceNow: 2)) {
